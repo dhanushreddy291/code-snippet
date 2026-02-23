@@ -6,8 +6,7 @@ import { authClient } from '@/lib/auth/client';
 import { UserButton } from '@neondatabase/auth/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Plus } from 'lucide-react';
+import { Plus, Files, Tags, FolderTree, Search, MonitorCog, FolderOpen } from 'lucide-react';
 import { SnippetEditor } from './snippet-editor';
 import { SnippetList } from './snippet-list';
 
@@ -97,85 +96,126 @@ export function Dashboard() {
 
   if (loading || sessionLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Loading workspace...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">SnippetHub</h1>
-            <p className="text-sm text-muted-foreground">Welcome back, {sessionData?.user?.name}</p>
+    <div className="min-h-screen p-3 text-foreground sm:p-4">
+      <div className="window-shell mx-auto flex min-h-[calc(100vh-1.5rem)] w-full max-w-425 flex-col overflow-hidden rounded-xl sm:min-h-[calc(100vh-2rem)]">
+        <header className="window-titlebar h-12">
+          <div className="window-controls">
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              aria-label="Close window"
+              title="Close"
+              className="h-3 w-3 rounded-full border border-black/30 bg-[#ff5f57] transition-transform hover:scale-105 active:scale-95"
+            />
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              aria-label="Minimize window"
+              title="Minimize"
+              className="h-3 w-3 rounded-full border border-black/30 bg-[#febc2e] transition-transform hover:scale-105 active:scale-95"
+            />
+            <button
+              type="button"
+              aria-label="Maximize window"
+              title="Maximize"
+              className="h-3 w-3 rounded-full border border-black/30 bg-[#28c840] transition-transform hover:scale-105 active:scale-95"
+            />
           </div>
-          <UserButton />
-        </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <div className="mb-4 p-4 bg-destructive/10 border border-destructive/30 rounded text-destructive">
-            {error}
+          <div className="flex min-w-0 items-center gap-2">
+            <MonitorCog className="h-4 w-4 text-primary" />
+            <p className="truncate text-xs text-muted-foreground sm:text-sm">
+              SnippetHub
+            </p>
           </div>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <aside className="lg:col-span-1">
+          <div className="flex items-center gap-3">
+
             <Button
               onClick={() => {
                 setEditingSnippet(null);
                 setShowEditor(true);
               }}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mb-6"
+              className="h-8 bg-primary px-3 text-primary-foreground hover:bg-primary/90"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              New Snippet
+              <Plus className="mr-1.5 h-4 w-4" />
+              New File
             </Button>
+            <UserButton variant={"ghost"} size={"sm"} />
+          </div>
+        </header>
 
-            {tags.length > 0 && (
-              <Card className="border border-border bg-card p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Tags ({tags.length})</h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+        <main className="grid min-h-0 flex-1 lg:grid-cols-[300px_1fr]">
+          <aside className="explorer-pane flex min-h-0 flex-col">
+            <div className="p-3 sm:p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Card className="ide-panel p-3">
+                  <div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Files className="h-3 w-3" />
+                    Files
+                  </div>
+                  <p className="text-lg font-semibold">{snippets.length}</p>
+                </Card>
+                <Card className="ide-panel p-3">
+                  <div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Tags className="h-3 w-3" />
+                    Tags
+                  </div>
+                  <p className="text-lg font-semibold">{tags.length}</p>
+                </Card>
+              </div>
+            </div>
+
+            <Card className="mx-3 mb-3 flex min-h-0 flex-1 flex-col border-border/70 bg-card/75 p-0 sm:mx-4 sm:mb-4">
+              <div className="pane-header flex items-center gap-2 border-b border-border/70 px-3">
+                <FolderTree className="h-3.5 w-3.5" />
+                Explorer
+              </div>
+              <div className="space-y-1 overflow-y-auto p-2.5">
+                <button
+                  onClick={() => setSelectedTag(null)}
+                  className={`explorer-row flex items-center gap-2 ${selectedTag === null ? 'explorer-row-active' : ''}`}
+                >
+                  <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+                  all-snippets
+                </button>
+                {tags.map((tag) => (
                   <button
-                    onClick={() => setSelectedTag(null)}
-                    className={`w-full text-left px-3 py-2 rounded transition-colors ${selectedTag === null
-                        ? 'bg-primary/20 text-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                      }`}
+                    key={tag.id}
+                    onClick={() => setSelectedTag(tag.name)}
+                    className={`explorer-row flex items-center justify-between gap-2 ${selectedTag === tag.name ? 'explorer-row-active' : ''}`}
                   >
-                    All Snippets
-                  </button>
-                  {tags.map((tag) => (
-                    <button
-                      key={tag.id}
-                      onClick={() => setSelectedTag(tag.name)}
-                      className={`w-full text-left px-3 py-2 rounded transition-colors flex items-center justify-between ${selectedTag === tag.name
-                          ? 'bg-primary/20 text-primary'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                        }`}
-                    >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <FolderOpen className="h-3.5 w-3.5 shrink-0" />
                       <span className="truncate">{tag.name}</span>
-                      <span className="text-xs ml-2 opacity-75">{tag.snippetCount}</span>
-                    </button>
-                  ))}
-                </div>
-              </Card>
-            )}
+                    </span>
+                    <span className="text-xs opacity-75">{tag.snippetCount}</span>
+                  </button>
+                ))}
+              </div>
+            </Card>
           </aside>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                {selectedTag ? `Tag: ${selectedTag}` : 'Your Snippets'}
+          <section className="editor-pane min-h-0 overflow-y-auto p-4 md:p-6">
+            {error && (
+              <div className="mb-4 rounded border border-destructive/35 bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            <div className="mb-5 border-b border-border/70 pb-3">
+              <h2 className="text-xl font-semibold md:text-2xl">
+                {selectedTag ? `#${selectedTag}` : 'All Snippets'}
               </h2>
-              <p className="text-muted-foreground">
-                {snippets.length} total snippet{snippets.length !== 1 ? 's' : ''}
+              <p className="text-sm text-muted-foreground">
+                {snippets.length} file{snippets.length !== 1 ? 's' : ''} in your workspace
               </p>
             </div>
 
@@ -185,9 +225,9 @@ export function Dashboard() {
               onDelete={handleDelete}
               selectedTag={selectedTag || undefined}
             />
-          </div>
-        </div>
-      </main>
+          </section>
+        </main>
+      </div>
 
       {showEditor && (
         <SnippetEditor

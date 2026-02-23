@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Search } from 'lucide-react';
+import { Edit, Trash2, Search, FileCode2, Clock3, Hash } from 'lucide-react';
 import Link from 'next/link';
 
 type Snippet = {
@@ -32,7 +31,8 @@ export function SnippetList({ snippets, onEdit, onDelete, selectedTag }: Snippet
   const filteredSnippets = snippets.filter((snippet) => {
     const matchesSearch =
       snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      snippet.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      snippet.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      snippet.tags?.some((tag) => tag.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesTag = !selectedTag || snippet.tags?.some((tag) => tag.name === selectedTag);
 
@@ -41,97 +41,122 @@ export function SnippetList({ snippets, onEdit, onDelete, selectedTag }: Snippet
 
   if (snippets.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="text-4xl mb-4">📝</div>
-        <h3 className="text-xl font-semibold text-foreground mb-2">No snippets yet</h3>
-        <p className="text-muted-foreground mb-6">Create your first code snippet to get started</p>
+      <div className="ide-panel flex flex-col items-center justify-center rounded-lg border-dashed py-16 text-center">
+        <div className="mb-3 text-4xl">📁</div>
+        <h3 className="mb-2 text-xl font-semibold text-foreground">No files yet</h3>
+        <p className="text-muted-foreground">Create your first snippet to populate the workspace.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
         <Input
-          placeholder="Search snippets by title or description..."
+          placeholder="Search files by title, description, or tag..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 bg-input border border-border text-foreground placeholder:text-muted-foreground"
+          className="h-10 border-border/80 bg-card/80 pl-10"
         />
       </div>
 
       {filteredSnippets.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="ide-panel rounded-lg border-dashed py-10 text-center text-muted-foreground">
           No snippets match your search{selectedTag && ` for tag "${selectedTag}"`}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="ide-panel overflow-hidden rounded-lg">
+          <div className="hidden grid-cols-[1.4fr_120px_180px_160px] gap-3 border-b border-border/75 bg-card/75 px-4 py-2.5 text-xs uppercase tracking-wide text-muted-foreground md:grid">
+            <span>File</span>
+            <span>Language</span>
+            <span>Tags</span>
+            <span>Updated</span>
+          </div>
+
           {filteredSnippets.map((snippet) => (
-            <Card
+            <div
               key={snippet.id}
-              className="border border-border bg-card hover:border-primary/50 transition-colors overflow-hidden"
+              className="group border-b border-border/65 last:border-b-0 hover:bg-secondary/40 transition-colors"
             >
-              <Link href={`/dashboard/snippets/${snippet.id}`}>
-                <div className="p-4 hover:bg-secondary/50 transition-colors cursor-pointer h-full flex flex-col">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-foreground truncate flex-1">
-                      {snippet.title}
-                    </h3>
-                    <span className="ml-2 px-2 py-1 text-xs bg-primary/20 text-primary rounded">
-                      {snippet.language}
-                    </span>
-                  </div>
-
-                  {snippet.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                      {snippet.description}
-                    </p>
-                  )}
-
-                  {snippet.tags && snippet.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {snippet.tags.map((tag) => (
-                        <Badge
-                          key={tag.id}
-                          variant="secondary"
-                          className="text-xs bg-secondary/50 text-foreground"
-                        >
-                          {tag.name}
-                        </Badge>
-                      ))}
+              <div className="grid items-center gap-3 px-4 py-3 md:grid-cols-[1.4fr_120px_180px_160px_auto]">
+                <Link href={`/dashboard/snippets/${snippet.id}`} className="min-w-0">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <FileCode2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
+                    <div className="min-w-0">
+                      <h3 className="truncate font-medium text-foreground transition-colors group-hover:text-primary">
+                        {snippet.title}
+                      </h3>
+                      {snippet.description && (
+                        <p className="text-sm text-muted-foreground truncate">{snippet.description}</p>
+                      )}
                     </div>
-                  )}
-
-                  <div className="mt-auto pt-4 border-t border-border flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        onEdit?.(snippet);
-                      }}
-                      className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                    >
-                      <Edit className="w-3 h-3 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (confirm('Are you sure you want to delete this snippet?')) {
-                          onDelete?.(snippet.id);
-                        }
-                      }}
-                      variant="outline"
-                      className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
                   </div>
+                </Link>
+
+                <div className="hidden md:flex items-center">
+                  <span className="rounded-md border border-primary/35 bg-primary/15 px-2 py-0.5 text-xs text-primary">
+                    {snippet.language}
+                  </span>
                 </div>
-              </Link>
-            </Card>
+
+                <div className="hidden min-w-0 items-center gap-1.5 md:flex">
+                  {snippet.tags && snippet.tags.length > 0 ? (
+                    snippet.tags.slice(0, 2).map((tag) => (
+                      <Badge
+                        key={tag.id}
+                        variant="secondary"
+                        className="border-border/65 bg-secondary/80 text-xs text-foreground"
+                      >
+                        {tag.name}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
+                  )}
+                  {snippet.tags && snippet.tags.length > 2 && (
+                    <span className="text-xs text-muted-foreground">+{snippet.tags.length - 2}</span>
+                  )}
+                </div>
+
+                <div className="hidden items-center gap-1.5 text-xs text-muted-foreground md:flex">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  {new Date(snippet.updated_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => onEdit?.(snippet)}
+                    variant="outline"
+                    className="h-8 border-border/75 bg-card/70 px-2.5 hover:bg-secondary/80"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this snippet?')) {
+                        onDelete?.(snippet.id);
+                      }
+                    }}
+                    variant="outline"
+                    className="h-8 border-destructive/35 bg-card/70 px-2.5 text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+
+                <div className="col-span-full flex items-center gap-2 text-xs text-muted-foreground md:hidden">
+                  <Hash className="h-3.5 w-3.5" />
+                  <span>{snippet.language}</span>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       )}

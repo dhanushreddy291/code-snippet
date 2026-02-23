@@ -113,23 +113,32 @@ export function SnippetEditor({ onClose, onSave, initialData }: SnippetEditorPro
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl border border-border bg-card max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-foreground">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+      <Card className="window-shell w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-xl border border-border/80 p-0">
+        <div className="window-titlebar">
+          <div className="window-controls">
+            <span />
+            <span />
+            <span />
+          </div>
+          <p className="text-sm text-muted-foreground">{initialData ? 'Edit Snippet File' : 'Create New Snippet File'}</p>
+          <button
+            onClick={onClose}
+            className="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-5 sm:p-6">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-foreground">
               {initialData ? 'Edit Snippet' : 'New Snippet'}
             </h2>
-            <button
-              onClick={onClose}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded text-destructive text-sm">
+            <div className="mb-4 rounded border border-destructive/35 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -146,7 +155,7 @@ export function SnippetEditor({ onClose, onSave, initialData }: SnippetEditorPro
                 value={formData.title}
                 onChange={handleChange}
                 required
-                className="mt-1 bg-input border border-border text-foreground placeholder:text-muted-foreground"
+                className="mt-1 border-border/80 bg-input/90 text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
@@ -160,7 +169,7 @@ export function SnippetEditor({ onClose, onSave, initialData }: SnippetEditorPro
                 placeholder="Brief description of the snippet"
                 value={formData.description}
                 onChange={handleChange}
-                className="mt-1 bg-input border border-border text-foreground placeholder:text-muted-foreground min-h-20"
+                className="mt-1 min-h-20 border-border/80 bg-input/90 text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
@@ -169,10 +178,10 @@ export function SnippetEditor({ onClose, onSave, initialData }: SnippetEditorPro
                 Programming Language
               </Label>
               <Select value={formData.language} onValueChange={handleLanguageChange}>
-                <SelectTrigger className="mt-1 bg-input border border-border text-foreground">
+                <SelectTrigger className="mt-1 border-border/80 bg-input/90 text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-card border border-border">
+                <SelectContent className="border border-border/80 bg-card">
                   {LANGUAGES.map((lang) => (
                     <SelectItem key={lang} value={lang} className="text-foreground">
                       {lang.charAt(0).toUpperCase() + lang.slice(1)}
@@ -193,7 +202,7 @@ export function SnippetEditor({ onClose, onSave, initialData }: SnippetEditorPro
                 value={formData.code}
                 onChange={handleChange}
                 required
-                className="mt-1 bg-input border border-border text-foreground placeholder:text-muted-foreground font-mono text-sm min-h-40"
+                className="mt-1 min-h-56 border-border/80 bg-input/90 font-mono text-sm text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
@@ -205,13 +214,13 @@ export function SnippetEditor({ onClose, onSave, initialData }: SnippetEditorPro
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  className="bg-input border border-border text-foreground placeholder:text-muted-foreground"
+                  className="border-border/80 bg-input/90 text-foreground placeholder:text-muted-foreground"
                 />
                 <Button
                   type="button"
                   onClick={addTag}
                   variant="outline"
-                  className="border-border text-foreground hover:bg-secondary"
+                  className="border-border/80 bg-card/80 text-foreground hover:bg-secondary"
                 >
                   Add
                 </Button>
@@ -221,7 +230,7 @@ export function SnippetEditor({ onClose, onSave, initialData }: SnippetEditorPro
                   {formData.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/20 text-primary border border-primary/30"
+                      className="inline-flex items-center gap-1 rounded border border-primary/35 bg-primary/20 px-2 py-1 text-primary"
                     >
                       {tag}
                       <button
@@ -241,7 +250,7 @@ export function SnippetEditor({ onClose, onSave, initialData }: SnippetEditorPro
               <Button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {loading ? 'Saving...' : 'Save Snippet'}
               </Button>
@@ -249,7 +258,7 @@ export function SnippetEditor({ onClose, onSave, initialData }: SnippetEditorPro
                 type="button"
                 onClick={onClose}
                 variant="outline"
-                className="border-border text-foreground hover:bg-secondary"
+                className="border-border/80 bg-card/80 text-foreground hover:bg-secondary"
               >
                 Cancel
               </Button>

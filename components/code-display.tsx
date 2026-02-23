@@ -41,24 +41,24 @@ export function CodeDisplay({ code, language, onCopy }: CodeDisplayProps) {
 
   if (loading) {
     return (
-      <div className="bg-input border border-border rounded p-4 text-muted-foreground">
+      <div className="rounded border border-border/75 bg-input/85 p-4 text-muted-foreground">
         Loading...
       </div>
     );
   }
 
   return (
-    <div className="relative group border border-border rounded overflow-hidden bg-input">
+    <div className="group relative overflow-hidden rounded-md border border-border/75 bg-input/85">
       <Button
         onClick={handleCopy}
         size="sm"
         variant="ghost"
-        className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-secondary/50 hover:bg-secondary text-foreground"
+        className="absolute right-2 top-2 z-10 h-8 border border-border/70 bg-card/90 px-2 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-secondary/95 text-foreground"
       >
         {copied ? (
-          <Check className="w-4 h-4" />
+          <Check className="h-4 w-4" />
         ) : (
-          <Copy className="w-4 h-4" />
+          <Copy className="h-4 w-4" />
         )}
       </Button>
 

@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CodeDisplay } from './code-display';
 import { SnippetEditor } from './snippet-editor';
-import { ArrowLeft, Edit, Trash2, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, FileCode2, CalendarClock, Tag } from 'lucide-react';
 
 type Snippet = {
   id: string;
@@ -30,7 +30,6 @@ export function SnippetDetail({ snippetId }: SnippetDetailProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showEditor, setShowEditor] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchSnippet();
@@ -68,29 +67,24 @@ export function SnippetDetail({ snippetId }: SnippetDetailProps) {
     }
   };
 
-  const handleCopy = () => {
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Loading file...
       </div>
     );
   }
 
   if (!snippet) {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen p-4 md:p-6">
         <Button
           onClick={() => router.push('/dashboard')}
           variant="outline"
-          className="border-border text-foreground hover:bg-secondary"
+          className="border-border/80 bg-card/80 text-foreground hover:bg-secondary"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
+          Back to Workspace
         </Button>
         <div className="mt-8 text-center text-muted-foreground">{error || 'Snippet not found'}</div>
       </div>
@@ -98,98 +92,112 @@ export function SnippetDetail({ snippetId }: SnippetDetailProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <Button
-          onClick={() => router.push('/dashboard')}
-          variant="outline"
-          className="mb-6 border-border text-foreground hover:bg-secondary"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
+    <div className="min-h-screen p-3 text-foreground sm:p-4">
+      <div className="window-shell mx-auto flex min-h-[calc(100vh-1.5rem)] w-full max-w-[1700px] flex-col overflow-hidden rounded-xl sm:min-h-[calc(100vh-2rem)]">
+        <header className="window-titlebar h-12">
+          <div className="window-controls">
+            <span />
+            <span />
+            <span />
+          </div>
 
-        <Card className="border border-border bg-card p-6 mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-foreground">{snippet.title}</h1>
-                <span className="px-3 py-1 text-sm bg-primary/20 text-primary rounded">
-                  {snippet.language}
-                </span>
-              </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <FileCode2 className="h-4 w-4 shrink-0 text-primary" />
+            <span className="truncate text-sm text-muted-foreground">Workspace / snippets / {snippet.title}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowEditor(true)}
+              variant="outline"
+              className="h-8 border-border/80 bg-card/75 px-3 hover:bg-secondary"
+            >
+              <Edit className="mr-1.5 h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              onClick={handleDelete}
+              variant="outline"
+              className="h-8 border-destructive/40 bg-card/75 px-2.5 text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </header>
 
-              {snippet.description && (
-                <p className="text-muted-foreground text-lg mb-4">{snippet.description}</p>
-              )}
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[280px_1fr]">
+          <aside className="explorer-pane p-3 sm:p-4">
+            <Button
+              onClick={() => router.push('/dashboard')}
+              variant="outline"
+              className="mb-4 w-full justify-start border-border/80 bg-card/70 hover:bg-secondary"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Workspace
+            </Button>
 
-              {snippet.tags && snippet.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {snippet.tags.map((tag) => (
-                    <Badge
-                      key={tag.id}
-                      variant="secondary"
-                      className="bg-secondary/50 text-foreground"
-                    >
-                      {tag.name}
-                    </Badge>
-                  ))}
+            <Card className="ide-panel h-fit p-4">
+              <h2 className="mb-3 text-xs uppercase tracking-wide text-muted-foreground">File Info</h2>
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-1 text-xs text-muted-foreground">Name</p>
+                  <p className="break-words font-medium">{snippet.title}</p>
                 </div>
-              )}
-            </div>
+                <div>
+                  <p className="mb-1 text-xs text-muted-foreground">Language</p>
+                  <span className="rounded-md border border-primary/35 bg-primary/15 px-2 py-1 text-xs text-primary">
+                    {snippet.language}
+                  </span>
+                </div>
+                <div>
+                  <p className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Tag className="h-3.5 w-3.5" />
+                    Tags
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {snippet.tags && snippet.tags.length > 0 ? (
+                      snippet.tags.map((tag) => (
+                        <Badge key={tag.id} variant="secondary" className="border-border/70 bg-secondary/85 text-foreground">
+                          {tag.name}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No tags</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    Last updated
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(snippet.updated_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </aside>
 
-            <div className="flex gap-2 ml-4">
-              <Button
-                onClick={() => setShowEditor(true)}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                onClick={handleDelete}
-                variant="outline"
-                className="border-destructive/30 text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p>
-              Created:{' '}
-              {new Date(snippet.created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </p>
-            {snippet.updated_at !== snippet.created_at && (
-              <p>
-                Last updated:{' '}
-                {new Date(snippet.updated_at).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </p>
-            )}
-          </div>
-        </Card>
-
-        <Card className="border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Code</h2>
-          <CodeDisplay
-            code={snippet.code}
-            language={snippet.language}
-            onCopy={handleCopy}
-          />
-        </Card>
+          <section className="editor-pane min-h-0 overflow-y-auto p-4 md:p-6">
+            <Card className="ide-panel overflow-hidden">
+              <div className="border-b border-border/75 bg-card/85 px-4 py-3">
+                <h2 className="font-medium">{snippet.title}.{snippet.language}</h2>
+                {snippet.description && (
+                  <p className="mt-1 text-sm text-muted-foreground">{snippet.description}</p>
+                )}
+              </div>
+              <div className="p-4">
+                <CodeDisplay code={snippet.code} language={snippet.language} />
+              </div>
+            </Card>
+          </section>
+        </div>
       </div>
 
       {showEditor && (
