@@ -5,6 +5,7 @@ export const metadata = {
   description: 'View snippet details',
 };
 
-export default function SnippetPage({ params }: { params: Promise<{ id: string }> }) {
-  return <SnippetDetail snippetId={(params as any).id} />;
+export default async function SnippetPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <SnippetDetail snippetId={id} />;
 }

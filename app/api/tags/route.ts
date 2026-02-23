@@ -1,23 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth } from '@/lib/auth/server';
 import { db } from '@/lib/db';
-import { tags, snippets, snippet_tags } from '@/lib/db/schema';
+import { tags } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 async function getUserIdFromSession(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('session_id')?.value;
-
-  if (!sessionCookie) {
-    return null;
-  }
-
-  try {
-    const sessionData = JSON.parse(sessionCookie);
-    return sessionData.userId || null;
-  } catch {
-    return null;
-  }
+  const { data: session } = await auth.getSession();
+  return session?.user?.id ?? null;
 }
 
 export async function GET(request: NextRequest) {
@@ -33,16 +22,16 @@ export async function GET(request: NextRequest) {
 
     // Get all tags for the user with count of snippets
     const userTags = await db.query.tags.findMany({
-      where: eq(tags.user_id, userId),
+      where: eq(tags.userId, userId),
       with: {
-        snippet_tags: true,
+        snippets: true,
       },
     });
 
     const formattedTags = userTags.map((tag) => ({
       id: tag.id,
       name: tag.name,
-      snippetCount: tag.snippet_tags.length,
+      snippetCount: tag.snippets.length,
     }));
 
     return NextResponse.json({ tags: formattedTags });
@@ -78,7 +67,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verify ownership
     const tag = await db.query.tags.findFirst({
-      where: and(eq(tags.id, tagId), eq(tags.user_id, userId)),
+      where: and(eq(tags.id, tagId), eq(tags.userId, userId)),
     });
 
     if (!tag) {

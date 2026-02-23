@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { authClient } from '@/lib/auth/client';
+import { UserButton } from '@neondatabase/auth/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, LogOut } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { SnippetEditor } from './snippet-editor';
 import { SnippetList } from './snippet-list';
 
@@ -26,15 +28,9 @@ type Tag = {
   snippetCount: number;
 };
 
-type User = {
-  id: string;
-  email: string;
-  name: string;
-};
-
 export function Dashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const { data: sessionData, isPending: sessionLoading } = authClient.useSession();
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,20 +40,17 @@ export function Dashboard() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!sessionLoading && !sessionData?.user) {
+      router.push('/auth/sign-in');
+      return;
+    }
+    if (sessionData?.user) {
+      fetchData();
+    }
+  }, [sessionData, sessionLoading]);
 
   const fetchData = async () => {
     try {
-      // Fetch user
-      const userRes = await fetch('/api/auth/me');
-      if (!userRes.ok) {
-        router.push('/login');
-        return;
-      }
-      const userData = await userRes.json();
-      setUser(userData.user);
-
       // Fetch snippets
       const snippetsRes = await fetch('/api/snippets');
       if (snippetsRes.ok) {
@@ -76,15 +69,6 @@ export function Dashboard() {
       console.error('[v0] Dashboard error:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
-    } catch (err) {
-      console.error('[v0] Logout error:', err);
     }
   };
 
@@ -111,7 +95,7 @@ export function Dashboard() {
     fetchData();
   };
 
-  if (loading) {
+  if (loading || sessionLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
@@ -126,16 +110,9 @@ export function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">SnippetHub</h1>
-            <p className="text-sm text-muted-foreground">Welcome back, {user?.name}</p>
+            <p className="text-sm text-muted-foreground">Welcome back, {sessionData?.user?.name}</p>
           </div>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="border-border text-foreground hover:bg-secondary"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <UserButton />
         </div>
       </header>
 
@@ -166,11 +143,10 @@ export function Dashboard() {
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   <button
                     onClick={() => setSelectedTag(null)}
-                    className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                      selectedTag === null
+                    className={`w-full text-left px-3 py-2 rounded transition-colors ${selectedTag === null
                         ? 'bg-primary/20 text-primary'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                    }`}
+                      }`}
                   >
                     All Snippets
                   </button>
@@ -178,11 +154,10 @@ export function Dashboard() {
                     <button
                       key={tag.id}
                       onClick={() => setSelectedTag(tag.name)}
-                      className={`w-full text-left px-3 py-2 rounded transition-colors flex items-center justify-between ${
-                        selectedTag === tag.name
+                      className={`w-full text-left px-3 py-2 rounded transition-colors flex items-center justify-between ${selectedTag === tag.name
                           ? 'bg-primary/20 text-primary'
                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                      }`}
+                        }`}
                     >
                       <span className="truncate">{tag.name}</span>
                       <span className="text-xs ml-2 opacity-75">{tag.snippetCount}</span>

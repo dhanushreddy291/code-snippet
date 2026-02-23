@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth } from '@/lib/auth/server';
 import { db } from '@/lib/db';
-import { snippets, snippet_tags, tags } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { snippets, snippetTags, tags } from '@/lib/db/schema';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 const snippetSchema = z.object({
@@ -14,22 +14,11 @@ const snippetSchema = z.object({
 });
 
 async function getUserIdFromSession(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('session_id')?.value;
-
-  if (!sessionCookie) {
-    return null;
-  }
-
-  try {
-    const sessionData = JSON.parse(sessionCookie);
-    return sessionData.userId || null;
-  } catch {
-    return null;
-  }
+  const { data: session } = await auth.getSession();
+  return session?.user?.id ?? null;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const userId = await getUserIdFromSession();
 
@@ -41,9 +30,9 @@ export async function GET(request: NextRequest) {
     }
 
     const userSnippets = await db.query.snippets.findMany({
-      where: eq(snippets.user_id, userId),
+      where: eq(snippets.userId, userId),
       with: {
-        snippet_tags: {
+        tags: {
           with: {
             tag: true,
           },
@@ -53,7 +42,9 @@ export async function GET(request: NextRequest) {
 
     const formattedSnippets = userSnippets.map((snippet) => ({
       ...snippet,
-      tags: snippet.snippet_tags.map((st) => ({
+      created_at: snippet.createdAt instanceof Date ? snippet.createdAt.toISOString() : snippet.createdAt,
+      updated_at: snippet.updatedAt instanceof Date ? snippet.updatedAt.toISOString() : snippet.updatedAt,
+      tags: snippet.tags.map((st) => ({
         id: st.tag.id,
         name: st.tag.name,
       })),
@@ -85,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Create snippet
     const newSnippet = await db.insert(snippets).values({
-      user_id: userId,
+      userId,
       title,
       description: description || null,
       code,
@@ -108,14 +99,13 @@ export async function POST(request: NextRequest) {
       for (const tagName of tagNames) {
         // Check if tag exists for this user
         let tag = await db.query.tags.findFirst({
-          where: (tagsTable) =>
-            tagsTable.user_id === userId && tagsTable.name === tagName,
+          where: and(eq(tags.userId, userId), eq(tags.name, tagName)),
         });
 
         // Create tag if it doesn't exist
         if (!tag) {
           const newTag = await db.insert(tags).values({
-            user_id: userId,
+            userId,
             name: tagName,
           }).returning();
 
@@ -131,9 +121,9 @@ export async function POST(request: NextRequest) {
 
       // Link snippet to tags
       for (const tag of createdTags) {
-        await db.insert(snippet_tags).values({
-          snippet_id: snippet.id,
-          tag_id: tag.id,
+        await db.insert(snippetTags).values({
+          snippetId: snippet.id,
+          tagId: tag.id,
         });
       }
     }
@@ -142,6 +132,8 @@ export async function POST(request: NextRequest) {
       {
         snippet: {
           ...snippet,
+          created_at: snippet.createdAt instanceof Date ? snippet.createdAt.toISOString() : snippet.createdAt,
+          updated_at: snippet.updatedAt instanceof Date ? snippet.updatedAt.toISOString() : snippet.updatedAt,
           tags: tagNames || [],
         },
       },

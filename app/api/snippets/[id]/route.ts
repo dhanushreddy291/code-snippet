@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth } from '@/lib/auth/server';
 import { db } from '@/lib/db';
-import { snippets, snippet_tags, tags } from '@/lib/db/schema';
+import { snippets, snippetTags, tags } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -14,19 +14,8 @@ const updateSnippetSchema = z.object({
 });
 
 async function getUserIdFromSession(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('session_id')?.value;
-
-  if (!sessionCookie) {
-    return null;
-  }
-
-  try {
-    const sessionData = JSON.parse(sessionCookie);
-    return sessionData.userId || null;
-  } catch {
-    return null;
-  }
+  const { data: session } = await auth.getSession();
+  return session?.user?.id ?? null;
 }
 
 export async function GET(
@@ -46,9 +35,9 @@ export async function GET(
     const { id } = await params;
 
     const snippet = await db.query.snippets.findFirst({
-      where: and(eq(snippets.id, id), eq(snippets.user_id, userId)),
+      where: and(eq(snippets.id, id), eq(snippets.userId, userId)),
       with: {
-        snippet_tags: {
+        tags: {
           with: {
             tag: true,
           },
@@ -66,7 +55,9 @@ export async function GET(
     return NextResponse.json({
       snippet: {
         ...snippet,
-        tags: snippet.snippet_tags.map((st) => ({
+        created_at: snippet.createdAt instanceof Date ? snippet.createdAt.toISOString() : snippet.createdAt,
+        updated_at: snippet.updatedAt instanceof Date ? snippet.updatedAt.toISOString() : snippet.updatedAt,
+        tags: snippet.tags.map((st: { tag: { id: string; name: string } }) => ({
           id: st.tag.id,
           name: st.tag.name,
         })),
@@ -101,7 +92,7 @@ export async function PUT(
 
     // Verify ownership
     const snippet = await db.query.snippets.findFirst({
-      where: and(eq(snippets.id, id), eq(snippets.user_id, userId)),
+      where: and(eq(snippets.id, id), eq(snippets.userId, userId)),
     });
 
     if (!snippet) {
@@ -117,25 +108,24 @@ export async function PUT(
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.code !== undefined) updateData.code = updates.code;
     if (updates.language !== undefined) updateData.language = updates.language;
-    updateData.updated_at = new Date();
+    updateData.updatedAt = new Date();
 
     await db.update(snippets).set(updateData).where(eq(snippets.id, id));
 
     // Handle tags if provided
     if (updates.tags !== undefined) {
       // Remove existing tags
-      await db.delete(snippet_tags).where(eq(snippet_tags.snippet_id, id));
+      await db.delete(snippetTags).where(eq(snippetTags.snippetId, id));
 
       // Add new tags
       for (const tagName of updates.tags) {
         let tag = await db.query.tags.findFirst({
-          where: (tagsTable) =>
-            tagsTable.user_id === userId && tagsTable.name === tagName,
+          where: and(eq(tags.userId, userId), eq(tags.name, tagName)),
         });
 
         if (!tag) {
           const newTag = await db.insert(tags).values({
-            user_id: userId,
+            userId: userId,
             name: tagName,
           }).returning();
 
@@ -145,9 +135,9 @@ export async function PUT(
         }
 
         if (tag) {
-          await db.insert(snippet_tags).values({
-            snippet_id: id,
-            tag_id: tag.id,
+          await db.insert(snippetTags).values({
+            snippetId: id,
+            tagId: tag.id,
           });
         }
       }
@@ -156,7 +146,7 @@ export async function PUT(
     const updatedSnippet = await db.query.snippets.findFirst({
       where: eq(snippets.id, id),
       with: {
-        snippet_tags: {
+        tags: {
           with: {
             tag: true,
           },
@@ -167,7 +157,9 @@ export async function PUT(
     return NextResponse.json({
       snippet: {
         ...updatedSnippet,
-        tags: updatedSnippet?.snippet_tags.map((st) => ({
+        created_at: updatedSnippet?.createdAt instanceof Date ? updatedSnippet.createdAt.toISOString() : updatedSnippet?.createdAt,
+        updated_at: updatedSnippet?.updatedAt instanceof Date ? updatedSnippet.updatedAt.toISOString() : updatedSnippet?.updatedAt,
+        tags: updatedSnippet?.tags.map((st: { tag: { id: string; name: string } }) => ({
           id: st.tag.id,
           name: st.tag.name,
         })),
@@ -207,7 +199,7 @@ export async function DELETE(
 
     // Verify ownership
     const snippet = await db.query.snippets.findFirst({
-      where: and(eq(snippets.id, id), eq(snippets.user_id, userId)),
+      where: and(eq(snippets.id, id), eq(snippets.userId, userId)),
     });
 
     if (!snippet) {

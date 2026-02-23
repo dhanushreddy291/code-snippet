@@ -10,7 +10,6 @@ export async function initHighlighter() {
         'javascript',
         'typescript',
         'python',
-        'react',
         'jsx',
         'tsx',
         'html',
@@ -33,11 +32,16 @@ export async function initHighlighter() {
   return highlighter;
 }
 
+const LANGUAGE_ALIASES: Record<string, string> = {
+  react: 'jsx',
+};
+
 export async function codeToHtml(code: string, language: string): Promise<string> {
   try {
     const highlighter = await initHighlighter();
+    const normalizedLang = LANGUAGE_ALIASES[language] ?? language;
     const html = await shikiCodeToHtml(code, {
-      lang: language || 'plaintext',
+      lang: normalizedLang || 'plaintext',
       theme: 'github-dark',
       transformers: [
         {

@@ -11,12 +11,12 @@ export default function HomePage() {
           <div className="text-xl font-bold">SnippetHub</div>
           <div className="flex items-center gap-4">
             <Link
-              href="/login"
+              href="/auth/sign-in"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               Sign In
             </Link>
-            <Link href="/signup">
+            <Link href="/auth/sign-up">
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 Get Started
               </Button>
@@ -31,7 +31,7 @@ export default function HomePage() {
           <div className="space-y-4">
             <h1 className="text-5xl sm:text-6xl font-bold tracking-tight">
               Organize Your Code
-              <span className="block bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              <span className="block bg-linear-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                 Snippets Effortlessly
               </span>
             </h1>
@@ -41,12 +41,12 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center justify-center gap-4">
-            <Link href="/signup">
+            <Link href="/auth/sign-up">
               <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 Start for Free <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
-            <Link href="/login">
+            <Link href="/auth/sign-in">
               <Button
                 size="lg"
                 variant="outline"
@@ -95,7 +95,7 @@ export default function HomePage() {
           <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
             Join developers who are already using SnippetHub to manage their code collection.
           </p>
-          <Link href="/signup">
+          <Link href="/auth/sign-up">
             <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
               Create Free Account <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
