@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'SnippetHub - Code Snippet Manager',
+  description: 'Organize, manage, and share your code snippets with tags, syntax highlighting, and more',
   generator: 'v0.app',
   icons: {
     icon: [
