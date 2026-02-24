@@ -7,7 +7,19 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CodeDisplay } from './code-display';
 import { SnippetEditor } from './snippet-editor';
-import { ArrowLeft, Edit, Trash2, FileCode2, CalendarClock, Tag } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, FileCode2, CalendarClock, Tag, Share, Copy, Check } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 
 type Snippet = {
   id: string;
@@ -18,6 +30,8 @@ type Snippet = {
   code: string;
   created_at: string;
   updated_at: string;
+  isShared?: boolean;
+  shareToken?: string;
 };
 
 type SnippetDetailProps = {
@@ -30,6 +44,8 @@ export function SnippetDetail({ snippetId }: SnippetDetailProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showEditor, setShowEditor] = useState(false);
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchSnippet();
@@ -66,6 +82,54 @@ export function SnippetDetail({ snippetId }: SnippetDetailProps) {
       setError('Failed to delete snippet');
     }
   };
+
+  const handleShareToggle = async (enabled: boolean) => {
+    try {
+      const response = await fetch(`/api/snippets/${snippetId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isShared: enabled }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update share settings');
+      }
+
+      const data = await response.json();
+      setSnippet(data.snippet);
+
+      toast({
+        title: enabled ? 'Snippet shared' : 'Snippet private',
+        description: enabled ? 'Anyone with the link can view this snippet.' : 'This snippet is now private.',
+      });
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update share settings',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const getShareUrl = () => {
+    if (!snippet?.shareToken) return '';
+    return `${window.location.origin}/share/${snippet.shareToken}`;
+  };
+
+  const copyToClipboard = () => {
+    const url = getShareUrl();
+    if (!url) return;
+
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({
+        title: "Link copied",
+        description: "Share link copied to clipboard",
+    })
+  }
 
   if (loading) {
     return (
@@ -106,6 +170,47 @@ export function SnippetDetail({ snippetId }: SnippetDetailProps) {
             <span className="truncate text-sm text-muted-foreground">Workspace / snippets / {snippet.title}</span>
           </div>
           <div className="flex items-center gap-2">
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button
+                    variant="outline"
+                    className="h-8 border-border/80 bg-card/75 px-3 hover:bg-secondary"
+                    >
+                    <Share className="mr-1.5 h-4 w-4" />
+                    Share
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                    <DialogTitle>Share Snippet</DialogTitle>
+                    <DialogDescription>
+                        Make your snippet public to share it with others.
+                    </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex items-center space-x-2 py-4">
+                    <Switch
+                        id="share-mode"
+                        checked={snippet.isShared}
+                        onCheckedChange={handleShareToggle}
+                    />
+                    <Label htmlFor="share-mode">Public access</Label>
+                    </div>
+
+                    {snippet.isShared && (
+                    <div className="flex items-center space-x-2 mt-2">
+                        <Input
+                        readOnly
+                        value={getShareUrl()}
+                        className="flex-1"
+                        />
+                        <Button size="icon" variant="outline" onClick={copyToClipboard}>
+                            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
             <Button
               onClick={() => setShowEditor(true)}
               variant="outline"
