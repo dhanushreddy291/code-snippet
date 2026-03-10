@@ -15,6 +15,13 @@
       "when": 1771853315070,
       "tag": "0001_nappy_black_panther",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773145042012,
+      "tag": "0002_pretty_la_nuit",
+      "breakpoints": true
     }
   ]
 }

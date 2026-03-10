@@ -7,7 +7,15 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CodeDisplay } from './code-display';
 import { SnippetEditor } from './snippet-editor';
-import { ArrowLeft, Edit, Trash2, FileCode2, CalendarClock, Tag } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, FileCode2, CalendarClock, Tag, Share2, Check, Copy } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 type Snippet = {
   id: string;
@@ -16,6 +24,7 @@ type Snippet = {
   language: string;
   tags?: Array<{ id: string; name: string }>;
   code: string;
+  isShared: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -30,6 +39,9 @@ export function SnippetDetail({ snippetId }: SnippetDetailProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showEditor, setShowEditor] = useState(false);
+  const [isTogglingShare, setIsTogglingShare] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchSnippet();
@@ -65,6 +77,39 @@ export function SnippetDetail({ snippetId }: SnippetDetailProps) {
     } catch (err) {
       setError('Failed to delete snippet');
     }
+  };
+
+  const handleToggleShare = async () => {
+    if (!snippet) return;
+
+    setIsTogglingShare(true);
+    try {
+      const response = await fetch(`/api/snippets/${snippetId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isShared: !snippet.isShared }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSnippet(data.snippet);
+        if (!snippet.isShared) {
+          setShowShareDialog(true);
+        }
+      }
+    } catch (err) {
+      console.error('[v0] Toggle share error:', err);
+    } finally {
+      setIsTogglingShare(false);
+    }
+  };
+
+  const copyShareLink = () => {
+    if (!snippet) return;
+    const link = `${window.location.origin}/share/${snippet.id}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) {
@@ -106,6 +151,15 @@ export function SnippetDetail({ snippetId }: SnippetDetailProps) {
             <span className="truncate text-sm text-muted-foreground">Workspace / snippets / {snippet.title}</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              onClick={handleToggleShare}
+              variant="outline"
+              className="h-8 border-border/80 bg-card/75 px-3 hover:bg-secondary"
+              disabled={isTogglingShare}
+            >
+              <Share2 className="mr-1.5 h-4 w-4" />
+              {snippet.isShared ? 'Shared' : 'Share'}
+            </Button>
             <Button
               onClick={() => setShowEditor(true)}
               variant="outline"
@@ -210,6 +264,33 @@ export function SnippetDetail({ snippetId }: SnippetDetailProps) {
           }}
         />
       )}
+
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Snippet Shared!</DialogTitle>
+            <DialogDescription>
+              Anyone with the link can now view this snippet.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2 mt-4">
+            <input
+              readOnly
+              value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${snippet?.id}`}
+              className="flex-1 px-3 py-2 text-sm bg-secondary rounded-md border border-input"
+            />
+            <Button onClick={copyShareLink} variant="secondary" size="icon">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+          <Button
+            onClick={() => setShowShareDialog(false)}
+            className="w-full mt-2"
+          >
+            Done
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -221,3 +221,73 @@ export async function DELETE(
     );
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const userId = await getUserIdFromSession();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+
+    if (body.isShared === undefined) {
+      return NextResponse.json(
+        { error: 'isShared field is required' },
+        { status: 400 }
+      );
+    }
+
+    const snippet = await db.query.snippets.findFirst({
+      where: and(eq(snippets.id, id), eq(snippets.userId, userId)),
+    });
+
+    if (!snippet) {
+      return NextResponse.json(
+        { error: 'Snippet not found' },
+        { status: 404 }
+      );
+    }
+
+    await db.update(snippets)
+      .set({ isShared: body.isShared, updatedAt: new Date() })
+      .where(eq(snippets.id, id));
+
+    const updatedSnippet = await db.query.snippets.findFirst({
+      where: eq(snippets.id, id),
+      with: {
+        tags: {
+          with: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({
+      snippet: {
+        ...updatedSnippet,
+        created_at: updatedSnippet?.createdAt instanceof Date ? updatedSnippet.createdAt.toISOString() : updatedSnippet?.createdAt,
+        updated_at: updatedSnippet?.updatedAt instanceof Date ? updatedSnippet.updatedAt.toISOString() : updatedSnippet?.updatedAt,
+        tags: updatedSnippet?.tags.map((st: { tag: { id: string; name: string } }) => ({
+          id: st.tag.id,
+          name: st.tag.name,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error('[v0] Toggle share error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
