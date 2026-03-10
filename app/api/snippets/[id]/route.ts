@@ -11,6 +11,7 @@ const updateSnippetSchema = z.object({
   code: z.string().min(1).optional(),
   language: z.string().min(1).optional(),
   tags: z.array(z.string()).optional(),
+  isShared: z.boolean().optional(),
 });
 
 async function getUserIdFromSession(): Promise<string | null> {
@@ -108,6 +109,12 @@ export async function PUT(
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.code !== undefined) updateData.code = updates.code;
     if (updates.language !== undefined) updateData.language = updates.language;
+    if (updates.isShared !== undefined) {
+      updateData.isShared = updates.isShared;
+      if (updates.isShared && !snippet.shareToken) {
+        updateData.shareToken = crypto.randomUUID();
+      }
+    }
     updateData.updatedAt = new Date();
 
     await db.update(snippets).set(updateData).where(eq(snippets.id, id));
