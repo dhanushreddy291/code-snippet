@@ -1,0 +1,55 @@
+name: OpenCode
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  opencode:
+    if: |
+        contains(github.event.comment.body, '/oc') ||
+        contains(github.event.comment.body, '/opencode')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # 1. Create an isolated Neon database branch for the AI agent
+      - name: Create Neon Branch
+        id: create_neon_branch
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          # Name the branch based on the issue number for traceability
+          branch_name: opencode-issue-${{ github.event.issue.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      # 2. Run OpenCode, passing the new Database URL as an environment variable
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          # Inject the isolated database URL into the environment
+          DATABASE_URL: ${{ steps.create_neon_branch.outputs.db_url }}
+        with:
+          model: opencode/minimax-m2.5-free
+          prompt: |
+            You are an expert autonomous AI engineer. Please fulfill the user's request from the issue comment.
+
+            IMPORTANT CONTEXT:
+            You have been provided a safe postgres database URL that is an isolated branch of the production database. You can make any schema changes you need, generate and run migrations, and test your code against this database.
+
+            You are responsible for delivering the complete end-to-end fix needed for the issue. Implement all required application, API, UI, server, test, and database changes needed to fully resolve the issue.
+
+            Expectations:
+            1. Investigate the issue / feature request and identify the full scope of required changes across code, configuration, tests, and database.
+            2. Implement the necessary code changes end to end so the feature or fix actually works in the application.
+            3. If the task involves database schema changes, adding columns, or fixing queries:
+              - Modify the ORM schema files as needed.
+              - Generate the migration files (for example, using `npx drizzle-kit generate`).
+              - Apply the migration scripts to your isolated database using the $DATABASE_URL environment variable.
+            4. Run the relevant validation for your changes, including tests, builds, linting, and/or manual verification as appropriate.
+            5. Verify the complete fix works end to end.
