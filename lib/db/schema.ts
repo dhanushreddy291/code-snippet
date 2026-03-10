@@ -171,6 +171,7 @@ export const snippets = pgTable(
     description: text('description'),
     code: text('code').notNull(),
     language: text('language').notNull().default('javascript'),
+    isShared: boolean('is_shared').notNull().default(false),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
